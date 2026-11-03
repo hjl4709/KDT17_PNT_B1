@@ -1,0 +1,25 @@
+# 개인 환경과 인증 정보
+.env
+.env.*
+!.env.example
+.aws/
+.codex/
+.agents/
+
+# 로컬에 보존한 기존 사이트 이력과 개인 호스팅 설정
+.local-backup/
+cellink-plm/.openai/
+
+# 원본 제안서와 배포 중간 파일은 로컬에서 보관
+/*.pdf
+/*.tar.gz
+/*.zip
+
+# 개발 도구 생성 파일
+node_modules/
+coverage/
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

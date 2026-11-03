@@ -1,0 +1,11 @@
+{
+  "name": "kdt17-pnt-b1",
+  "version": "0.1.0",
+  "private": true,
+  "description": "이차전지 설비 프로젝트 일정·이슈 통합관리 PLM",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "check": "node --check cellink-plm/dist/app.js && node cellink-plm/tests/smoke.mjs"
+  }
+}

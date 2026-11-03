@@ -1,0 +1,25 @@
+name: PLM basic checks
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check app syntax
+        run: node --check cellink-plm/dist/app.js
+      - name: Check preview server syntax
+        run: node --check scripts/serve.mjs
+      - name: Verify calculations and spreadsheet import
+        run: node cellink-plm/tests/smoke.mjs

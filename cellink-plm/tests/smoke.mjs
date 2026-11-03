@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import { createRequire } from 'node:module';
+const require=createRequire(import.meta.url);
+const XLSX=require('../dist/vendor/xlsx.full.min.js');
+const nodes=new Map();
+const node=()=>({innerHTML:'',classList:{toggle(){},add(){},remove(){}},addEventListener(){},querySelectorAll(){return[];}});
+const context=vm.createContext({console,Date,Math,Set,JSON,Number,String,Map,URL,Blob,FormData,structuredClone,setTimeout,clearTimeout,XLSX,localStorage:{getItem(){return null;},setItem(){}},sessionStorage:{getItem(){return null;},setItem(){}},document:{body:node(),querySelector(s){if(!nodes.has(s))nodes.set(s,node());return nodes.get(s);},addEventListener(){}},window:{scrollTo(){}}});
+vm.runInContext(fs.readFileSync(new URL('../dist/app.js',import.meta.url),'utf8'),context);
+const run=s=>vm.runInContext(s,context);
+assert.equal(run('db.projects.length'),5);
+assert.equal(run('percent("P-26041")'),45);
+assert.equal(run('late({end:dateAdd(TODAY,-1),progress:99})'),true);
+assert.equal(run('late({end:dateAdd(TODAY,-1),progress:100})'),false);
+assert.equal(run('late({end:TODAY,progress:0})'),false);
+assert.equal(run('validDate("2026-02-30")'),false);
+assert.equal(run('validDate("2028-02-29")'),true);
+assert.equal(run('weekStart("2026-11-08")'),'2026-11-02');
+run('user={name:"김민수",mode:"manager"};');
+for(const page of ['dashboard','projectsPage','schedulePage','issuesPage','weeklyPage','docsPage','bomPage','changesPage','easyDashboard','easySchedule','importPage','helpPage']){
+ assert.ok(run(`${page}()`).length>100,page+' renders');
+}
+const row={'작업ID':'T-TEST','프로젝트ID':'P-26041','작업명':'입력 검증 작업','공정':'조립','담당자':'김민수','시작일':'2026-11-03','종료일':'2026-11-06','진행률':10,'선행작업ID':''};
+context.testRow=row;
+run('importRows=[testRow];validateImport("tasks")');assert.equal(run('importErrors.length'),0);
+run('importRows=[{...testRow,작업ID:"T-001"}];validateImport("tasks")');assert.ok(run('importErrors.some(x=>x.includes("중복"))'));
+run('importRows=[{...testRow,종료일:"2026-02-30"}];validateImport("tasks")');assert.ok(run('importErrors.some(x=>x.includes("실제 날짜"))'));
+run('importRows=[{...testRow,진행률:101}];validateImport("tasks")');assert.ok(run('importErrors.some(x=>x.includes("0~100"))'));
+run('importRows=[{...testRow,프로젝트ID:"UNKNOWN"}];validateImport("tasks")');assert.ok(run('importErrors.some(x=>x.includes("먼저 등록"))'));
+run('importRows=[{...testRow,선행작업ID:"T-TEST"}];validateImport("tasks")');assert.ok(run('importErrors.some(x=>x.includes("순환"))'));
+run('importRows=[{...testRow,선행작업ID:"T-TEST-2"},{...testRow,작업ID:"T-TEST-2",프로젝트ID:"P-26042"}];validateImport("tasks")');assert.ok(run('importErrors.some(x=>x.includes("다른 프로젝트"))'));
+const book=XLSX.utils.book_new();XLSX.utils.book_append_sheet(book,XLSX.utils.json_to_sheet([row]),'일정');
+const bytes=XLSX.write(book,{type:'buffer',bookType:'xlsx'});
+const restored=XLSX.read(bytes,{type:'buffer'});assert.deepEqual(XLSX.utils.sheet_to_json(restored.Sheets['일정']),[row]);
+console.log('PASS: dashboard counts, date boundaries, 12 screen renderers, import validation, dependency cycles, Excel round trip');
